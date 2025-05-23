@@ -6,6 +6,7 @@ import ClientForm from '../components/clients/ClientForm';
 import Button from '../components/ui/Button';
 import { supabase } from '../lib/supabase';
 import { toast } from 'react-toastify';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 interface Contact {
   name: string;
@@ -32,6 +33,7 @@ const ClientsPage: React.FC = () => {
   const [selectedStatus, setSelectedStatus] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const isMobile = useIsMobile(600);
 
   useEffect(() => {
     fetchClients();
@@ -94,12 +96,15 @@ const ClientsPage: React.FC = () => {
   });
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-white">Clientes</h1>
+    <div className={`space-y-${isMobile ? '4' : '6'}`}>
+      <div className={`flex items-center ${isMobile ? 'flex-col gap-4' : 'justify-between'}`}>
+        <h1 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-semibold text-white`}>
+          Clientes
+        </h1>
         <Button
           onClick={() => setIsFormOpen(true)}
           className="flex items-center"
+          fullWidth={isMobile}
         >
           <Plus size={20} className="mr-2" />
           Adicionar Cliente
@@ -118,7 +123,7 @@ const ClientsPage: React.FC = () => {
           Carregando clientes...
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'} gap-4`}>
           {filteredClients.map((client) => (
             <ClientCard
               key={client.id}

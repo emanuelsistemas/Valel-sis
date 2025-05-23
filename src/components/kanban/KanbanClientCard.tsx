@@ -1,6 +1,7 @@
 import React from 'react';
-import { Hash, User, CheckCircle, RotateCcw, Trash2 } from 'lucide-react';
+import { Hash, User, CheckCircle, RotateCcw, Trash2, Copy } from 'lucide-react';
 import Button from '../ui/Button';
+import { toast } from 'react-toastify';
 
 interface Contact {
   name: string;
@@ -43,6 +44,17 @@ const KanbanClientCard: React.FC<KanbanClientCardProps> = ({
   onRestaurar,
   onLimpar
 }) => {
+  // Função para copiar apenas números (remove formatação)
+  const copyToClipboard = async (text: string, type: string) => {
+    try {
+      // Remove todos os caracteres que não são números
+      const numbersOnly = text.replace(/\D/g, '');
+      await navigator.clipboard.writeText(numbersOnly);
+      toast.success(`${type} copiado: ${numbersOnly}`);
+    } catch (error) {
+      toast.error(`Erro ao copiar ${type}`);
+    }
+  };
   const { client } = approval;
   const formatDocument = (document: string, type: 'cpf' | 'cnpj') => {
     if (type === 'cpf') {
@@ -80,6 +92,15 @@ const KanbanClientCard: React.FC<KanbanClientCardProps> = ({
           <div className="flex items-center text-[#8b949e] mt-1">
             <Hash size={12} className="mr-1" />
             <span className="text-xs">{client.code}</span>
+            {client.code && (
+              <button
+                onClick={() => copyToClipboard(client.code, 'Código')}
+                className="ml-1 p-1 hover:bg-[#30363d] rounded transition-colors"
+                title="Copiar código"
+              >
+                <Copy size={8} className="text-[#8b949e] hover:text-white" />
+              </button>
+            )}
           </div>
         </div>
         <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(approval.approval_status)}`}>
@@ -93,6 +114,15 @@ const KanbanClientCard: React.FC<KanbanClientCardProps> = ({
         <span className="text-xs">
           {client.document_type.toUpperCase()}: {formatDocument(client.document, client.document_type)}
         </span>
+        {client.document && (
+          <button
+            onClick={() => copyToClipboard(client.document, client.document_type === 'cpf' ? 'CPF' : 'CNPJ')}
+            className="ml-1 p-1 hover:bg-[#30363d] rounded transition-colors"
+            title={`Copiar ${client.document_type === 'cpf' ? 'CPF' : 'CNPJ'}`}
+          >
+            <Copy size={8} className="text-[#8b949e] hover:text-white" />
+          </button>
+        )}
       </div>
 
       {/* Contato principal (primeiro da lista) */}

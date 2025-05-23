@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { toast } from 'react-toastify';
 import KanbanClientCard from '../components/kanban/KanbanClientCard';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 interface Contact {
   name: string;
@@ -46,6 +47,7 @@ const KanbanPage: React.FC = () => {
   const [approvals, setApprovals] = useState<ClientApproval[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<string>('');
+  const isMobile = useIsMobile(600);
 
   useEffect(() => {
     fetchData();
@@ -212,6 +214,40 @@ const KanbanPage: React.FC = () => {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-[#8b949e]">Carregando...</div>
+      </div>
+    );
+  }
+
+  if (isMobile) {
+    return (
+      <div className="space-y-4">
+        <h1 className="text-xl font-semibold text-white">Gestor de Status</h1>
+
+        {/* Kanban horizontal com scroll */}
+        <div className="overflow-x-auto pb-4">
+          <div className="flex gap-4 min-w-max">
+            {columns.map(column => (
+              <div key={column.id} className="bg-[#161b22] rounded-lg p-4 w-72 flex-shrink-0">
+                <h2 className="text-lg font-medium text-white mb-4">{column.title}</h2>
+
+                <div className="space-y-3 min-h-[300px]">
+                  {approvals
+                    .filter(approval => approval.approval_status === column.status)
+                    .map((approval) => (
+                      <KanbanClientCard
+                        key={approval.id}
+                        approval={approval}
+                        onLiberar={handleLiberar}
+                        onLiberado={handleLiberado}
+                        onRestaurar={handleRestaurar}
+                        onLimpar={handleLimpar}
+                      />
+                    ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }

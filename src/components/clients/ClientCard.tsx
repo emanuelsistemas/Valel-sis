@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MoreVertical, Building2, Hash, Phone, User, Edit, Trash2, CheckCircle, XCircle, Ban } from 'lucide-react';
+import { MoreVertical, Building2, Hash, Phone, User, Edit, Trash2, CheckCircle, XCircle, Ban, Copy } from 'lucide-react';
 import Button from '../ui/Button';
 import { supabase } from '../../lib/supabase';
 import { toast } from 'react-toastify';
@@ -32,6 +32,18 @@ const ClientCard: React.FC<ClientCardProps> = ({ client, onEdit, onUpdate }) => 
     newStatus?: 'active' | 'blocked' | 'cancelled';
   } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Função para copiar apenas números (remove formatação)
+  const copyToClipboard = async (text: string, type: string) => {
+    try {
+      // Remove todos os caracteres que não são números
+      const numbersOnly = text.replace(/\D/g, '');
+      await navigator.clipboard.writeText(numbersOnly);
+      toast.success(`${type} copiado: ${numbersOnly}`);
+    } catch (error) {
+      toast.error(`Erro ao copiar ${type}`);
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -132,11 +144,20 @@ const ClientCard: React.FC<ClientCardProps> = ({ client, onEdit, onUpdate }) => 
   return (
     <div className="bg-[#21262d] rounded-lg p-4 hover:bg-[#2d333b] transition-colors">
       <div className="flex items-start justify-between">
-        <div>
+        <div className="flex-1">
           <h3 className="text-lg font-medium text-white">{client.nome_fantasia}</h3>
-          <div className="flex items-center text-[#8b949e] mt-1">
+          <div className="flex items-center text-[#8b949e] mt-1 mr-4">
             <Hash size={14} className="mr-1" />
             <span className="text-xs">{client.code}</span>
+            {client.code && (
+              <button
+                onClick={() => copyToClipboard(client.code, 'Código')}
+                className="ml-1 p-1 hover:bg-[#30363d] rounded transition-colors"
+                title="Copiar código"
+              >
+                <Copy size={10} className="text-[#8b949e] hover:text-white" />
+              </button>
+            )}
           </div>
         </div>
         <div className="relative" ref={menuRef}>
@@ -235,6 +256,15 @@ const ClientCard: React.FC<ClientCardProps> = ({ client, onEdit, onUpdate }) => 
           <span className="text-sm">
             {client.document_type.toUpperCase()}: {formatDocument(client.document, client.document_type)}
           </span>
+          {client.document && (
+            <button
+              onClick={() => copyToClipboard(client.document, client.document_type === 'cpf' ? 'CPF' : 'CNPJ')}
+              className="ml-1 p-1 hover:bg-[#30363d] rounded transition-colors"
+              title={`Copiar ${client.document_type === 'cpf' ? 'CPF' : 'CNPJ'}`}
+            >
+              <Copy size={10} className="text-[#8b949e] hover:text-white" />
+            </button>
+          )}
         </div>
       </div>
 
