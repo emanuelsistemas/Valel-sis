@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Search } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { toast } from 'react-toastify';
 import KanbanClientCard from '../components/kanban/KanbanClientCard';
@@ -45,14 +46,35 @@ const columns: Column[] = [
 
 const KanbanPage: React.FC = () => {
   const [approvals, setApprovals] = useState<ClientApproval[]>([]);
+  const [filteredApprovals, setFilteredApprovals] = useState<ClientApproval[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState('');
   const isMobile = useIsMobile(600);
 
   useEffect(() => {
     fetchData();
     getCurrentUser();
   }, []);
+
+  // Filtrar aprovações baseado no termo de busca
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setFilteredApprovals(approvals);
+    } else {
+      const searchTermLower = searchTerm.toLowerCase();
+      const filtered = approvals.filter(approval => {
+        const client = approval.client;
+        return (
+          client.nome_fantasia.toLowerCase().includes(searchTermLower) ||
+          client.code.toLowerCase().includes(searchTermLower) ||
+          client.document.replace(/\D/g, '').includes(searchTermLower.replace(/\D/g, '')) ||
+          (client.razao_social && client.razao_social.toLowerCase().includes(searchTermLower))
+        );
+      });
+      setFilteredApprovals(filtered);
+    }
+  }, [approvals, searchTerm]);
 
   const getCurrentUser = async () => {
     try {
@@ -94,6 +116,7 @@ const KanbanPage: React.FC = () => {
       })) || [];
 
       setApprovals(formattedApprovals);
+      setFilteredApprovals(formattedApprovals);
     } catch (error: any) {
       toast.error('Erro ao carregar dados');
       console.error('Error:', error);
@@ -223,6 +246,18 @@ const KanbanPage: React.FC = () => {
       <div className="space-y-4">
         <h1 className="text-xl font-semibold text-white">Gestor de Status</h1>
 
+        {/* Campo de busca */}
+        <div className="relative">
+          <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#8b949e]" />
+          <input
+            type="text"
+            placeholder="Buscar por nome, código, CNPJ/CPF ou razão social..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-3 bg-[#161b22] border border-[#30363d] rounded-lg text-white placeholder-[#8b949e] focus:outline-none focus:border-[#58a6ff]"
+          />
+        </div>
+
         {/* Kanban horizontal com scroll */}
         <div className="overflow-x-auto pb-4">
           <div className="flex gap-4 min-w-max">
@@ -231,7 +266,7 @@ const KanbanPage: React.FC = () => {
                 <h2 className="text-lg font-medium text-white mb-4">{column.title}</h2>
 
                 <div className="space-y-3 min-h-[300px]">
-                  {approvals
+                  {filteredApprovals
                     .filter(approval => approval.approval_status === column.status)
                     .map((approval) => (
                       <KanbanClientCard
@@ -256,13 +291,25 @@ const KanbanPage: React.FC = () => {
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold text-white">Gestor de Status</h1>
 
+      {/* Campo de busca */}
+      <div className="relative max-w-md">
+        <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#8b949e]" />
+        <input
+          type="text"
+          placeholder="Buscar por nome, código, CNPJ/CPF..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full pl-10 pr-4 py-2 bg-[#161b22] border border-[#30363d] rounded-lg text-white placeholder-[#8b949e] focus:outline-none focus:border-[#58a6ff]"
+        />
+      </div>
+
       <div className="grid grid-cols-4 gap-4">
         {columns.map(column => (
           <div key={column.id} className="bg-[#161b22] rounded-lg p-4">
             <h2 className="text-lg font-medium text-white mb-4">{column.title}</h2>
 
             <div className="space-y-3 min-h-[200px]">
-              {approvals
+              {filteredApprovals
                 .filter(approval => approval.approval_status === column.status)
                 .map((approval) => (
                   <KanbanClientCard
