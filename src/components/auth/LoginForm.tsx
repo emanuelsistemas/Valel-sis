@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import InputField from '../ui/InputField';
 import Button from '../ui/Button';
-import { Mail, Lock } from 'lucide-react';
+import { Mail, Lock, Loader2 } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
+import { toast } from 'react-toastify';
 
 const LoginForm: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -51,10 +53,32 @@ const LoginForm: React.FC = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (validateForm()) {
-      console.log('Login enviado:', formData);
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: formData.email,
+          password: formData.password
+        });
+        
+        if (error) {
+          toast.error(error.message || 'Erro ao fazer login');
+          console.error('Erro de login:', error);
+        } else if (data?.user) {
+          toast.success('Login realizado com sucesso!');
+          console.log('Login bem-sucedido:', data);
+        }
+      } catch (err) {
+        console.error('Erro ao processar login:', err);
+        toast.error('Erro ao processar o login');
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -99,8 +123,15 @@ const LoginForm: React.FC = () => {
         </a>
       </div>
 
-      <Button type="submit" fullWidth>
-        Entrar
+      <Button type="submit" fullWidth disabled={isLoading}>
+        {isLoading ? (
+          <>
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            Entrando...
+          </>
+        ) : (
+          'Entrar'
+        )}
       </Button>
     </form>
   );

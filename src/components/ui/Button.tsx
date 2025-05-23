@@ -36,7 +36,11 @@ const Button: React.FC<ButtonProps> = ({
   const combinedClasses = `${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${widthClass} ${className}`;
   
   return (
-    <button className={combinedClasses} disabled={disabled} {...props}>
+    <button 
+      className={combinedClasses} 
+      disabled={disabled}
+      {...props}
+    >
       {children}
     </button>
   );

@@ -20,7 +20,7 @@ interface Client {
   razao_social: string | null;
   nome_fantasia: string;
   observacao: string;
-  status: 'active' | 'blocked' | 'cancelled';
+  status: 'active' | 'blocked' | 'cancelled' | 'pending';
   contacts: Contact[];
 }
 
@@ -72,8 +72,8 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, client }) => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ 
-      ...prev, 
+    setFormData(prev => ({
+      ...prev,
       [name]: value,
       ...(name === 'document_type' && value === 'cpf' ? { razao_social: '' } : {})
     }));
@@ -161,10 +161,10 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, client }) => {
 
         toast.success('Cliente atualizado com sucesso!');
       } else {
-        // Insert client
+        // Insert client with explicit status
         const { data: clientData, error: clientError } = await supabase
           .from('clients')
-          .insert([formData])
+          .insert([{ ...formData, status: 'active' }])
           .select()
           .single();
 

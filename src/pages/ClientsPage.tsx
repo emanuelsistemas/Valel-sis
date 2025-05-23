@@ -21,7 +21,7 @@ interface Client {
   razao_social: string | null;
   nome_fantasia: string;
   observacao: string;
-  status: 'active' | 'blocked' | 'cancelled';
+  status: 'active' | 'blocked' | 'cancelled' | 'pending';
   contacts: Contact[];
 }
 
@@ -120,9 +120,9 @@ const ClientsPage: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredClients.map((client) => (
-            <ClientCard 
-              key={client.id} 
-              client={client} 
+            <ClientCard
+              key={client.id}
+              client={client}
               onEdit={handleEdit}
               onUpdate={fetchClients}
             />

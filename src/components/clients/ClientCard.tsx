@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MoreVertical, Building2, Hash, Phone, User, Edit, Ban, X, Trash2 } from 'lucide-react';
+import { MoreVertical, Building2, Hash, Phone, User, Edit, Trash2, CheckCircle, XCircle, Ban } from 'lucide-react';
 import Button from '../ui/Button';
 import { supabase } from '../../lib/supabase';
 import { toast } from 'react-toastify';
@@ -18,7 +18,7 @@ interface ClientCardProps {
     document: string;
     razao_social: string | null;
     nome_fantasia: string;
-    status: 'active' | 'blocked' | 'cancelled';
+    status: 'active' | 'blocked' | 'cancelled' | 'pending';
     contacts: Contact[];
   };
   onEdit: (client: ClientCardProps['client']) => void;
@@ -27,7 +27,10 @@ interface ClientCardProps {
 
 const ClientCard: React.FC<ClientCardProps> = ({ client, onEdit, onUpdate }) => {
   const [showMenu, setShowMenu] = useState(false);
-  const [showConfirmation, setShowConfirmation] = useState<'block' | 'cancel' | 'delete' | null>(null);
+  const [showConfirmation, setShowConfirmation] = useState<{
+    action: 'delete' | 'changeStatus';
+    newStatus?: 'active' | 'blocked' | 'cancelled';
+  } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -44,13 +47,15 @@ const ClientCard: React.FC<ClientCardProps> = ({ client, onEdit, onUpdate }) => 
   const statusColors = {
     active: 'bg-green-500/10 text-green-500',
     blocked: 'bg-red-500/10 text-red-500',
-    cancelled: 'bg-gray-500/10 text-gray-500'
+    cancelled: 'bg-gray-500/10 text-gray-500',
+    pending: 'bg-yellow-500/10 text-yellow-500'
   };
 
   const statusLabels = {
     active: 'Ativo',
     blocked: 'Bloqueado',
-    cancelled: 'Cancelado'
+    cancelled: 'Cancelado',
+    pending: 'Pendente'
   };
 
   const typeLabels = {
@@ -71,9 +76,11 @@ const ClientCard: React.FC<ClientCardProps> = ({ client, onEdit, onUpdate }) => 
     return cleaned.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
   };
 
-  const handleAction = async (action: 'block' | 'cancel' | 'delete') => {
+  const handleAction = async () => {
+    if (!showConfirmation) return;
+
     try {
-      if (action === 'delete') {
+      if (showConfirmation.action === 'delete') {
         const { error } = await supabase
           .from('clients')
           .delete()
@@ -81,21 +88,45 @@ const ClientCard: React.FC<ClientCardProps> = ({ client, onEdit, onUpdate }) => 
 
         if (error) throw error;
         toast.success('Cliente excluído com sucesso');
-      } else {
-        const { error } = await supabase
-          .from('clients')
-          .update({ status: action === 'block' ? 'blocked' : 'cancelled' })
-          .eq('id', client.id);
+      } else if (showConfirmation.action === 'changeStatus' && showConfirmation.newStatus) {
+        // Para status 'blocked' e 'cancelled', criar/atualizar registro na tabela de aprovação
+        if (showConfirmation.newStatus === 'blocked' || showConfirmation.newStatus === 'cancelled') {
+          const { error: approvalError } = await supabase
+            .from('client_approvals')
+            .upsert({
+              client_id: client.id,
+              approval_status: showConfirmation.newStatus,
+              approved_by: null,
+              approved_at: null
+            });
 
-        if (error) throw error;
-        toast.success(`Cliente ${action === 'block' ? 'bloqueado' : 'cancelado'} com sucesso`);
+          if (approvalError) throw approvalError;
+        }
+
+        const statusLabels = {
+          active: 'ativado',
+          blocked: 'bloqueado',
+          cancelled: 'cancelado'
+        };
+
+        toast.success(`Cliente ${statusLabels[showConfirmation.newStatus]} com sucesso`);
       }
       onUpdate();
     } catch (error: any) {
-      toast.error(`Erro ao ${action === 'block' ? 'bloquear' : action === 'cancel' ? 'cancelar' : 'excluir'} cliente`);
+      toast.error('Erro ao realizar ação');
     }
     setShowConfirmation(null);
     setShowMenu(false);
+  };
+
+  const getAvailableStatuses = () => {
+    const allStatuses = [
+      { key: 'active', label: 'Ativo', icon: CheckCircle },
+      { key: 'blocked', label: 'Bloqueado', icon: Ban },
+      { key: 'cancelled', label: 'Cancelado', icon: XCircle }
+    ];
+
+    return allStatuses.filter(status => status.key !== client.status);
   };
 
   return (
@@ -109,13 +140,13 @@ const ClientCard: React.FC<ClientCardProps> = ({ client, onEdit, onUpdate }) => 
           </div>
         </div>
         <div className="relative" ref={menuRef}>
-          <button 
+          <button
             onClick={() => setShowMenu(!showMenu)}
             className="p-1 hover:bg-[#30363d] rounded-lg transition-colors"
           >
             <MoreVertical size={20} className="text-[#8b949e]" />
           </button>
-          
+
           {showMenu && (
             <div className="absolute right-0 mt-2 w-48 bg-[#161b22] rounded-lg shadow-lg z-10 py-1">
               <button
@@ -128,26 +159,27 @@ const ClientCard: React.FC<ClientCardProps> = ({ client, onEdit, onUpdate }) => 
                 <Edit size={16} className="mr-2" />
                 Editar
               </button>
-              {client.status === 'active' && (
-                <button
-                  onClick={() => setShowConfirmation('block')}
-                  className="w-full px-4 py-2 text-left text-[#c9d1d9] hover:bg-[#21262d] flex items-center"
-                >
-                  <Ban size={16} className="mr-2" />
-                  Bloquear
-                </button>
-              )}
-              {client.status !== 'cancelled' && (
-                <button
-                  onClick={() => setShowConfirmation('cancel')}
-                  className="w-full px-4 py-2 text-left text-[#c9d1d9] hover:bg-[#21262d] flex items-center"
-                >
-                  <X size={16} className="mr-2" />
-                  Cancelar
-                </button>
-              )}
+
+              {/* Opções de status disponíveis */}
+              {getAvailableStatuses().map((status) => {
+                const IconComponent = status.icon;
+                return (
+                  <button
+                    key={status.key}
+                    onClick={() => setShowConfirmation({
+                      action: 'changeStatus',
+                      newStatus: status.key as 'active' | 'blocked' | 'cancelled'
+                    })}
+                    className="w-full px-4 py-2 text-left text-[#c9d1d9] hover:bg-[#21262d] flex items-center"
+                  >
+                    <IconComponent size={16} className="mr-2" />
+                    {status.label}
+                  </button>
+                );
+              })}
+
               <button
-                onClick={() => setShowConfirmation('delete')}
+                onClick={() => setShowConfirmation({ action: 'delete' })}
                 className="w-full px-4 py-2 text-left text-[#f85149] hover:bg-[#21262d] flex items-center"
               >
                 <Trash2 size={16} className="mr-2" />
@@ -160,18 +192,19 @@ const ClientCard: React.FC<ClientCardProps> = ({ client, onEdit, onUpdate }) => 
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-20">
               <div className="bg-[#161b22] p-6 rounded-lg max-w-sm w-full mx-4">
                 <h3 className="text-lg font-medium text-white mb-2">
-                  {showConfirmation === 'delete' ? 'Excluir Cliente' :
-                   showConfirmation === 'block' ? 'Bloquear Cliente' : 'Cancelar Cliente'}
+                  {showConfirmation.action === 'delete'
+                    ? 'Excluir Cliente'
+                    : `Alterar Status`}
                 </h3>
                 <p className="text-[#8b949e] mb-4">
-                  {showConfirmation === 'delete' 
+                  {showConfirmation.action === 'delete'
                     ? 'Tem certeza que deseja excluir este cliente? Esta ação não pode ser desfeita.'
-                    : `Tem certeza que deseja ${showConfirmation === 'block' ? 'bloquear' : 'cancelar'} este cliente?`}
+                    : `Tem certeza que deseja alterar o status deste cliente?`}
                 </p>
                 <div className="flex gap-3">
                   <Button
-                    onClick={() => handleAction(showConfirmation)}
-                    variant={showConfirmation === 'delete' ? 'outline' : 'primary'}
+                    onClick={handleAction}
+                    variant={showConfirmation.action === 'delete' ? 'outline' : 'primary'}
                     fullWidth
                   >
                     Confirmar
@@ -189,7 +222,7 @@ const ClientCard: React.FC<ClientCardProps> = ({ client, onEdit, onUpdate }) => 
           )}
         </div>
       </div>
-      
+
       <div className="mt-4 space-y-2">
         {client.razao_social && (
           <div className="flex items-center text-[#8b949e]">

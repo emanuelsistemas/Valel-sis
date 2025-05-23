@@ -26,6 +26,8 @@ const ClientFilters: React.FC<ClientFiltersProps> = ({
           className="w-full pl-10 pr-4 py-2 bg-[#0d1117] border border-[#30363d] rounded-lg text-white placeholder-[#8b949e] focus:outline-none focus:border-[#58a6ff]"
         />
       </div>
+      {/* Filtro de status temporariamente oculto */}
+      {/*
       <select
         value={selectedStatus}
         onChange={(e) => setSelectedStatus(e.target.value)}
@@ -35,7 +37,9 @@ const ClientFilters: React.FC<ClientFiltersProps> = ({
         <option value="active">Ativo</option>
         <option value="blocked">Bloqueado</option>
         <option value="cancelled">Cancelado</option>
+        <option value="pending">Pendente</option>
       </select>
+      */}
     </div>
   );
 };
